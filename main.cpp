@@ -25,16 +25,57 @@ void dropPpmImage(const std::string &path, const std::vector<unsigned int> buffe
     fout.close();
 }
 
+void drawRectangle(std::vector<unsigned int> &buffer, const int width, const int height, const int x, const int y, const int rectWidth, const int rectHeight, const unsigned int color){
+    for(int i = y; i < y + rectHeight; i++){
+        for(int j = x; j < x + rectHeight; j++){
+            buffer[i * width + j] = color;
+        }
+    }
+}
+
 int main(){
     const int width = 1024;
     const int height = 1024;
     std::vector<unsigned int> framebuffer(width * height, 0);
+    
+    const int mapWidth = 16;
+    const int mapHeight = 16;
+    const char map[] =  "0000000000000000"\
+                        "0   0          0"\
+                        "0   0          0"\
+                        "0         000000"\
+                        "0   0     0    0"\
+                        "0   0          0"\
+                        "0   0          0"\
+                        "0   0000000    0"\
+                        "0         0    0"\
+                        "0         0    0"\
+                        "0   0000000    0"\
+                        "0    0    0    0"\
+                        "0    0    0    0"\
+                        "0    0    0    0"\
+                        "0              0"\
+                        "0000000000000000";
+
     for(int i = 0; i < height; i++){
         for(int j = 0; j < width; j++){
             unsigned int r = 255.0 * i / height;
             unsigned int g = 255.0 * j / width;
             unsigned int b = 0;
             framebuffer[i * width + j] = packColor(r, g, b);
+        }
+    }
+
+    const int rectWidth = width / mapWidth;
+    const int rectHeight = height / mapHeight;
+    for(int i = 0; i < mapHeight; i++){
+        for(int j = 0; j < mapWidth; j++){
+            if(map[i * mapWidth + j] == ' '){
+                continue;
+            }
+            int rectX = j * rectWidth;
+            int rectY = i * rectHeight;
+            drawRectangle(framebuffer, width, height, rectX, rectY, rectWidth, rectHeight, packColor(0, 255, 255));
         }
     }
 
