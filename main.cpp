@@ -35,7 +35,7 @@ void drawRectangle(std::vector<unsigned int> &buffer, const int width, const int
 {
     for (int i = y; i < y + rectHeight; i++)
     {
-        for (int j = x; j < x + rectHeight; j++)
+        for (int j = x; j < x + rectWidth; j++)
         {
             buffer[i * width + j] = color;
         }
@@ -44,9 +44,9 @@ void drawRectangle(std::vector<unsigned int> &buffer, const int width, const int
 
 int main()
 {
-    const int width = 1024;
+    const int width = 2048;
     const int height = 1024;
-    std::vector<unsigned int> framebuffer(width * height, 0);
+    std::vector<unsigned int> framebuffer(width * height, packColor(255, 255, 255));
 
     const int mapWidth = 16;
     const int mapHeight = 16;
@@ -67,18 +67,7 @@ int main()
                        "0              0"
                        "0000000000000000";
 
-    for (int i = 0; i < height; i++)
-    {
-        for (int j = 0; j < width; j++)
-        {
-            unsigned int r = 255.0 * i / height;
-            unsigned int g = 255.0 * j / width;
-            unsigned int b = 0;
-            framebuffer[i * width + j] = packColor(r, g, b);
-        }
-    }
-
-    const int rectWidth = width / mapWidth;
+    const int rectWidth = width / (2 * mapWidth);
     const int rectHeight = height / mapHeight;
     for (int i = 0; i < mapHeight; i++)
     {
@@ -97,20 +86,27 @@ int main()
     const float playerX = 7.5;
     const float playerY = 4.5;
     const float playerDir = acos(-1) / 6.0f;
+    const float fov = acos(-1) / 3.0f;
 
-    for (float t = 0.0f; t < 20.0f; t += 0.05f)
+    for (int i = 0; i < width / 2; i++)
     {
-        float dirX = playerX + t * cos(playerDir);
-        float dirY = playerY + t * sin(playerDir);
-        if (map[static_cast<int>(dirY) * mapWidth + static_cast<int>(dirX)] != ' ')
+        float angle = playerDir - fov / 2 + static_cast<float>(i) / (width / 2);
+        for (float t = 0.0f; t < 20.0f; t += 0.05f)
         {
-            break;
+            float dirX = playerX + t * cos(angle);
+            float dirY = playerY + t * sin(angle);
+            framebuffer[(static_cast<int>(dirY * rectHeight) * width) + static_cast<int>(dirX * rectWidth)] = packColor(0, 0, 0);
+            
+            if (map[static_cast<int>(dirY) * mapWidth + static_cast<int>(dirX)] != ' ')
+            {
+                int colomnHeight = height / t;
+                drawRectangle(framebuffer, width, height, width / 2 + i, height / 2 - colomnHeight / 2, 1, colomnHeight, packColor(0, 255, 255));
+                break;
+            }
         }
-
-        framebuffer[(static_cast<int>(dirY * rectHeight) * width) + static_cast<int>(dirX * rectWidth)] = packColor(255, 255, 255);
     }
 
-    drawRectangle(framebuffer, width, height, playerX * rectWidth, playerY * rectHeight, 10, 10, packColor(255, 255, 255));
+    drawRectangle(framebuffer, width, height, playerX * rectWidth, playerY * rectHeight, 10, 10, packColor(0, 0, 0));
 
     dropPpmImage("./out.ppm", framebuffer, width, height);
 }
