@@ -1,5 +1,7 @@
 #include "framebuffer.hpp"
 
+#include <iostream>
+
 FrameBuffer::FrameBuffer(const int w, const int h, const unsigned int color) : width(w), height(h)
 {
     clear(color);
@@ -12,6 +14,9 @@ void FrameBuffer::clear(const unsigned int color)
 
 void FrameBuffer::setPixel(const int x, const int y, const unsigned int color)
 {
+    if(x >= width || y >= height || y < 0 || x < 0){
+        return;
+    }
     img[y * width + x] = color;
 }
 
