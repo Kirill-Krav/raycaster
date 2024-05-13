@@ -3,6 +3,9 @@
 #include <fstream>
 #include <cmath>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 unsigned int packColor(const unsigned int r, const unsigned int g, const unsigned int b, const unsigned int a = 255)
 {
     return (a << 24) + (b << 16) + (g << 8) + r;
@@ -42,6 +45,38 @@ void drawRectangle(std::vector<unsigned int> &buffer, const int width, const int
     }
 }
 
+bool loadTexture(const std::string filename, std::vector<unsigned int> &texture, int &sz)
+{
+    int nchannels = -1, w, h;
+    unsigned char *pixmap = stbi_load(filename.c_str(), &w, &h, &nchannels, 0);
+    if (!pixmap)
+    {
+        std::cerr << "Error: can not load the textures" << std::endl;
+        return false;
+    }
+    if (4 != nchannels)
+    {
+        std::cerr << "Error: the texture must be a 32 bit image" << std::endl;
+        stbi_image_free(pixmap);
+        return false;
+    }
+    sz = w;
+    texture = std::vector<unsigned int>(w * h);
+    for (int i = 0; i < h; i++)
+    {
+        for (int j = 0; j < w; j++)
+        {
+            unsigned int r = pixmap[(i * w + j) * 4 + 0];
+            unsigned int g = pixmap[(i * w + j) * 4 + 1];
+            unsigned int b = pixmap[(i * w + j) * 4 + 2];
+            unsigned int a = pixmap[(i * w + j) * 4 + 3];
+            texture[i * w + j] = packColor(r, g, b, a);
+        }
+    }
+    stbi_image_free(pixmap);
+    return true;
+}
+
 int main()
 {
     const int width = 2048;
@@ -67,6 +102,14 @@ int main()
                        "0              0"
                        "0000000000000000";
 
+    std::vector<unsigned int> texture;
+    int textureSize;
+    if (!loadTexture("textures/wall.png", texture, textureSize)) {
+        std::cerr << "Failed to load wall textures" << std::endl;
+        return -1;
+    }
+
+
     const int rectWidth = width / (2 * mapWidth);
     const int rectHeight = height / mapHeight;
     for (int i = 0; i < mapHeight; i++)
@@ -79,28 +122,41 @@ int main()
             }
             int rectX = j * rectWidth;
             int rectY = i * rectHeight;
-            drawRectangle(framebuffer, width, height, rectX, rectY, rectWidth, rectHeight, packColor(0, 255, 255));
+            drawRectangle(framebuffer, width, height, rectX, rectY, rectWidth, rectHeight, texture[0]);
         }
     }
 
     const float playerX = 7.5;
-    const float playerY = 4.5;
-    const float playerDir = acos(-1) / 6.0f;
+    const float playerY = 2.5;
+    const float playerDir = acos(-1) / 6;
     const float fov = acos(-1) / 3.0f;
 
     for (int i = 0; i < width / 2; i++)
     {
         float angle = playerDir - fov / 2 + static_cast<float>(i) / (width / 2);
-        for (float t = 0.0f; t < 20.0f; t += 0.05f)
+        for (float t = 0.0f; t < 20.0f; t += 0.01f)
         {
             float dirX = playerX + t * cos(angle);
             float dirY = playerY + t * sin(angle);
             framebuffer[(static_cast<int>(dirY * rectHeight) * width) + static_cast<int>(dirX * rectWidth)] = packColor(0, 0, 0);
-            
+
             if (map[static_cast<int>(dirY) * mapWidth + static_cast<int>(dirX)] != ' ')
             {
-                int colomnHeight = height / t;
-                drawRectangle(framebuffer, width, height, width / 2 + i, height / 2 - colomnHeight / 2, 1, colomnHeight, packColor(0, 255, 255));
+                int colomnHeight = height / (t * cos(angle - playerDir));
+                float hitX = dirX - floor(dirX);
+                float hitY = dirY - floor(dirY);
+                int textureX = hitX * textureSize;
+                if(abs(dirX - floor(dirX + 0.5)) > abs(dirY - floor(dirY + 0.5))){
+                    textureX = hitX * textureSize;
+                }
+                else{
+                    textureX = hitY * textureSize;
+                }
+                int st = height / 2 - colomnHeight / 2;
+                for(int j = st; j < height / 2 + colomnHeight / 2; j++){
+                    float tt = static_cast<float>(j - st) / colomnHeight;
+                    framebuffer[j * width + width / 2 + i] = texture[static_cast<int>(tt * textureSize) * textureSize + textureX];
+                }
                 break;
             }
         }
