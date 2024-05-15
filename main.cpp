@@ -121,6 +121,9 @@ int main()
         {
             if (SDL_KEYDOWN == event.type)
             {
+                if(SDLK_ESCAPE == event.key.keysym.sym){
+                    break;
+                }
                 if ('a' == event.key.keysym.sym)
                 {
                     player.setStatusTrn(-0.1);
